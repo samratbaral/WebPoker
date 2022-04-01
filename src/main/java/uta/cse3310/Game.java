@@ -9,8 +9,9 @@ import uta.cse3310.UserEvent.UserEventType;
 
 public class Game {
 
-    ArrayList<Player> players = new ArrayList<>();
-    int turn; // player ID that has the current turn
+    private ArrayList<Player> players = new ArrayList<>();
+    private int turn; // player ID that has the current turn
+    private transient int seconds;
 
     public String exportStateAsJSON() {
         Gson gson = new Gson();
@@ -44,11 +45,20 @@ public class Game {
 
     public boolean update() {
 
-
         // this function is called on a periodic basis (once a second) by a timer
         // it is to allow time based situations to be handled in the game
         // if the game state is changed, it returns a true.
+        seconds = seconds + 1;
+        if ((seconds % 10) == 0) {
+            turn = turn + 1;
+            if (turn == 5) {
+                turn = 0;
+            }
+            return true;
+        }
         return false;
+
+        // return false;
         // expecting that returning a true will trigger a send of the game
         // state to everyone
 

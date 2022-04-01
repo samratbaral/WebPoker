@@ -54,6 +54,8 @@ public class WebPoker extends WebSocketServer {
 
   private int numPlayers;
   private Game game;
+  // to protect the game object from concurrent access
+  private Object mutex = new Object();
 
   private void setNumPlayers(int N) {
     numPlayers = N;
@@ -73,7 +75,7 @@ public class WebPoker extends WebSocketServer {
 
   @Override
   public void onOpen(WebSocket conn, ClientHandshake handshake) {
-     
+
     System.out.println(
         conn.getRemoteSocketAddress().getAddress().getHostAddress() + " connected");
 
@@ -89,11 +91,15 @@ public class WebPoker extends WebSocketServer {
     // this is the only time we send info to a single client.
     // it needs to know it's player ID.
     conn.send(player.asJSONString());
-    game.addPlayer(player);
+    synchronized (mutex) {
+      game.addPlayer(player);
+    }
 
     // and as always, we send the game state to everyone
-    broadcast(game.exportStateAsJSON());
-    System.out.println("the game state" + game.exportStateAsJSON());
+    synchronized (mutex) {
+      broadcast(game.exportStateAsJSON());
+      System.out.println("the game state" + game.exportStateAsJSON());
+    }
   }
 
   @Override
@@ -101,37 +107,48 @@ public class WebPoker extends WebSocketServer {
     System.out.println(conn + " has closed");
 
     int idx = conn.getAttachment();
-    game.removePlayer(idx);
-    System.out.println("removed player index " + idx);
+    synchronized (mutex) {
+      game.removePlayer(idx);
 
-    // The state is now changed, so every client needs to be informed
-    broadcast(game.exportStateAsJSON());
-    System.out.println("the game state" + game.exportStateAsJSON());
+      System.out.println("removed player index " + idx);
+
+      // The state is now changed, so every client needs to be informed
+      broadcast(game.exportStateAsJSON());
+      System.out.println("the game state" + game.exportStateAsJSON());
+    }
   }
 
   @Override
   public void onMessage(WebSocket conn, String message) {
 
-    // all incoming messages are processed by the game
-    game.processMessage(message);
-    // and the results of that message are sent to everyone
-    // as the "state of the game"
+    synchronized (mutex) {
+      // all incoming messages are processed by the game
+      game.processMessage(message);
+      // and the results of that message are sent to everyone
+      // as the "state of the game"
 
-    broadcast(game.exportStateAsJSON());
+      broadcast(game.exportStateAsJSON());
+    }
     System.out.println(conn + ": " + message);
   }
 
   @Override
   public void onMessage(WebSocket conn, ByteBuffer message) {
-    broadcast(message.array());
+    synchronized (mutex) {
+      broadcast(message.array());
+    }
     System.out.println(conn + ": " + message);
   }
 
   public class upDate extends TimerTask {
+
     @Override
     public void run() {
       if (game != null) {
+        synchronized (mutex) {
+        }
         if (game.update()) {
+
           broadcast(game.exportStateAsJSON());
         }
       }
@@ -144,7 +161,7 @@ public class WebPoker extends WebSocketServer {
 
     HttpServer H = new HttpServer(8080, "./html");
     H.start();
-    
+
     // create and start the websocket server
 
     int port = 8880;
