@@ -33,8 +33,8 @@
   var connection = null;
 
   var serverUrl;
-  serverUrl ="ws://" + window.location.hostname + ":8880";
-  
+  serverUrl = "ws://" + window.location.hostname + ":8880";
+
   connection = new WebSocket(serverUrl);
   connection.onopen = function (evt) {
     console.log("open");
@@ -67,18 +67,51 @@
         document.getElementById("textbox").innerText + '\n\n' + "Player ID is " + playerID;
     }
     else {
+      const suite_to_char = new Map();
+
+      suite_to_char.set("SPADES", "S");
+      suite_to_char.set("HEARTS", "H");
+      suite_to_char.set("DIAMONDS", "D");
+      suite_to_char.set("CLUBS", "C");
+
+      const value_to_char = new Map();
+
+      value_to_char.set("TWO", "2");
+      value_to_char.set("THREE", "3");
+      value_to_char.set("FOUR", "4");
+      value_to_char.set("FIVE", "5");
+      value_to_char.set("SIX", "6");
+      value_to_char.set("SEVEN", "7");
+      value_to_char.set("EIGHT", "8");
+      value_to_char.set("NINE", "9");
+      value_to_char.set("TEN", "T");
+      value_to_char.set("JACK", "J");
+      value_to_char.set("QUEEN", "Q");
+      value_to_char.set("KING", "K");
 
       // process the game state
-      // this will just have one card change every time a new game state comes in.
-      // the term LUT means "look up table".  you will see it sometimes in code written last 
-      // century.
-      cardLUT = ["3C.svg", "2B.svg", "3S.svg", "KC.svg", "6D.svg", "2J.svg", "2S.svg"];
-      document.getElementById("card4").src = cardLUT[cardIdx];
-      cardIdx = cardIdx + 1;
-      if (cardIdx > 6)
-        cardIdx = 0;
-    }
-    console.log("the cardIdx is " + cardIdx)
+
+      console.log("dumping game state")
+      for (const player of obj.players) {
+        console.log("id =" + player.Id);
+        console.log("name =" + player.name);
+
+        // only show the cards for this player
+        if (playerID == player.Id) {
+
+          var i = 0;
+          for (const card of player.Cards) {
+            console.log("Card =" + card.suite + "  " + card.value);
+
+            var filename = value_to_char.get(card.value) + suite_to_char.get(card.suite) + ".svg";
+            var element = "card" + (i + 1);
+
+            document.getElementById(element).src = filename;
+            i++;
+          }  // each card
+        } // player id matches
+      } // each player
+    } // this is game state
   }
 
 
