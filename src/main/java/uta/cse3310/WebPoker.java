@@ -86,8 +86,10 @@ public class WebPoker extends WebSocketServer {
       System.out.println("starting a new game");
       game = new Game();
     }
-
+    // This puts the player number into the conn data structure so
+    // it is available later on
     conn.setAttachment(numPlayers);
+
     // this is the only time we send info to a single client.
     // it needs to know it's player ID.
     conn.send(player.asJSONString());
@@ -106,7 +108,11 @@ public class WebPoker extends WebSocketServer {
   public void onClose(WebSocket conn, int code, String reason, boolean remote) {
     System.out.println(conn + " has closed");
 
+    // the player number of this connection was saved earlier when the
+    // websocket connection was opened.
     int idx = conn.getAttachment();
+
+    
     synchronized (mutex) {
       game.removePlayer(idx);
 
